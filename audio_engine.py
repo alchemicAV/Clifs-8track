@@ -197,6 +197,8 @@ class AudioEngine:
 		self.initialize_devices()
 		self.initialize_metronome()
 		
+		self.calculate_metronome_timing()
+
 		self.master_volume_gain = 1.0  # Default 0 dB (75% slider position)
 		
 	def set_track_manager(self, track_manager):
@@ -580,19 +582,30 @@ class AudioEngine:
 			pass
 		return False
 			
-	def initialize_metronome(self):
+	def initialize_metronome(self):	
 		"""Create metronome click sounds - try to load cowbell.mp3 and and1.mp3"""
 		# Initialize to None first
 		self.metronome_sound = None
 		self.metronome_and_sound = None
 		
+		# Function to get the correct path for bundled files
+		def get_resource_path(relative_path):
+			"""Get absolute path to resource, works for dev and for PyInstaller"""
+			try:
+				# PyInstaller creates a temp folder and stores path in _MEIPASS
+				import sys
+				base_path = sys._MEIPASS
+			except AttributeError:
+				base_path = os.path.abspath(".")
+			return os.path.join(base_path, relative_path)
+	
 		# Load main metronome sound (cowbell.mp3 or generated)
 		try:
 			# Try to load cowbell.mp3 from root folder
-			cowbell_file = Path("cowbell.mp3")
-			if cowbell_file.exists():
+			cowbell_file = get_resource_path("cowbell.mp3")
+			if os.path.exists(cowbell_file):  # Use os.path.exists() instead of .exists()
 				print("Loading cowbell.mp3...")
-				audio_data, sample_rate = sf.read(str(cowbell_file))
+				audio_data, sample_rate = sf.read(cowbell_file)  # No need for str() conversion
 				
 				# Resample if needed
 				if sample_rate != self.sample_rate:
@@ -629,7 +642,7 @@ class AudioEngine:
 				print("✓ Loaded cowbell.mp3 for metronome")
 			else:
 				raise Exception("cowbell.mp3 not found")
-				
+					
 		except Exception as e:
 			print(f"Could not load cowbell.mp3: {e}, creating generated sound")
 			# Fallback to generated click sound
@@ -646,10 +659,10 @@ class AudioEngine:
 		
 		# Load "and" sound for every 4th beat (and1.mp3)
 		try:
-			and1_file = Path("and1.mp3")
-			if and1_file.exists():
+			and1_file = get_resource_path("and1.mp3")
+			if os.path.exists(and1_file):  # Use os.path.exists() instead of .exists()
 				print("Loading and1.mp3...")
-				audio_data, sample_rate = sf.read(str(and1_file))
+				audio_data, sample_rate = sf.read(and1_file)  # No need for str() conversion
 				
 				# Resample if needed
 				if sample_rate != self.sample_rate:
@@ -695,11 +708,14 @@ class AudioEngine:
 			if self.metronome_sound is not None:
 				self.metronome_and_sound = self.metronome_sound.copy()
 				print("✓ Using main metronome sound for 'and' beats")
-		
+			
 	def calculate_metronome_timing(self):
 		"""Calculate samples per beat based on BPM"""
-		beats_per_second = self.bpm / 60.0
-		self.samples_per_beat = int(self.sample_rate / beats_per_second)
+		if self.bpm > 0:
+			beats_per_second = self.bpm / 60.0
+			self.samples_per_beat = int(self.sample_rate / beats_per_second)
+		else:
+			self.samples_per_beat = self.sample_rate  # Default to 1 second if BPM is 0
 		
 	def set_bpm(self, bpm):
 		"""Set metronome BPM"""
@@ -831,7 +847,7 @@ class AudioEngine:
 		"""Optimized metronome addition with 'and' sound every 4th beat"""
 		effective_volume = self.get_effective_metronome_volume()
 		
-		if effective_volume == 0:
+		if effective_volume == 0 or self.samples_per_beat == 0:
 			return
 		
 		for i in range(frames):

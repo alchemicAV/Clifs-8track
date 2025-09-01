@@ -45,36 +45,34 @@ def create_executable():
 		except subprocess.CalledProcessError:
 			print("✗ Failed to install PyInstaller")
 			return False
+	
 	# Build list of additional data files
 	add_data_args = []
-
-	# Always include README if it exists
-	if Path("README.md").exists():
-		add_data_args.extend(["--add-data", "README.md;."])
 	
 	# Include deer.jpg if it exists
 	if Path("deer.jpg").exists():
-		add_data_args.extend(["--add-data", "deer.jpg;."])
+		if os.name == 'nt':  # Windows
+			add_data_args.extend(["--add-data", "deer.jpg;."])
+		else:  # Unix/Linux/Mac
+			add_data_args.extend(["--add-data", "deer.jpg:."])
 		print("✓ Including deer.jpg in executable")
 	
-	# Include cowbell.mp3 and and1.mp3 if they exist (for metronome sounds)
-	if Path("cowbell.mp3").exists():
-		add_data_args.extend(["--add-data", "cowbell.mp3;."])
-		print("✓ Including cowbell.mp3 in executable")
+	# Include audio files if they exist
+	for audio_file in ["cowbell.mp3", "and1.mp3"]:
+		if Path(audio_file).exists():
+			if os.name == 'nt':  # Windows
+				add_data_args.extend(["--add-data", f"{audio_file};."])
+			else:  # Unix/Linux/Mac  
+				add_data_args.extend(["--add-data", f"{audio_file}:."])
+			print(f"✓ Including {audio_file} in executable")
 	
-	if Path("and1.mp3").exists():
-		add_data_args.extend(["--add-data", "and1.mp3;."])
-		print("✓ Including and1.mp3 in executable")
-	
-
 	# PyInstaller command
 	cmd = [
 		sys.executable, "-m", "PyInstaller",
 		"--onefile",
 		"--windowed", 
 		"--name", "MultitrackRecorder",
-		"--add-data", "README.md;.",  # Include readme if it exists
-		"--add-data", "deer.jpg;.",
+		*add_data_args,
 		"main.py"
 	]
 	

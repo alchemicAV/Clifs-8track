@@ -52,8 +52,18 @@ class MultitrackRecorderApp:
 		
 		# Try to load and set deer background image
 		try:
-			deer_image_path = Path("deer.jpg")
-			if deer_image_path.exists():
+			# Function to get the correct path for bundled files
+			def get_resource_path(relative_path):
+				"""Get absolute path to resource, works for dev and for PyInstaller"""
+				try:
+					# PyInstaller creates a temp folder and stores path in _MEIPASS
+					base_path = sys._MEIPASS
+				except AttributeError:
+					base_path = os.path.abspath(".")
+				return os.path.join(base_path, relative_path)
+			
+			deer_image_path = get_resource_path("deer.jpg")
+			if os.path.exists(deer_image_path):
 				print("deer.jpg found, loading as background...")
 				# Load and resize image to fit window
 				pil_image = Image.open(deer_image_path)
@@ -68,10 +78,10 @@ class MultitrackRecorderApp:
 				
 				print("Background image deer.jpg loaded successfully")
 			else:
-				print("deer.jpg not found in root folder")
+				print("deer.jpg not found")
 		except Exception as e:
 			print(f"Could not load background image: {e}")
-		
+	
 		# Make window not resizable for consistency
 		self.root.resizable(False, False)
 		
@@ -80,7 +90,6 @@ class MultitrackRecorderApp:
 		x = 50  # 50 pixels from left edge
 		y = (self.root.winfo_screenheight() // 2) - (900 // 2)  # Still center vertically
 		self.root.geometry(f"1500x900+{x}+{y}")
-		
 		
 	def run(self):
 		"""Start the application"""
