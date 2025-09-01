@@ -71,7 +71,7 @@ def create_executable():
 		sys.executable, "-m", "PyInstaller",
 		"--onefile",
 		"--windowed", 
-		"--name", "MultitrackRecorder",
+		"--name", "Clif's_8track",
 		*add_data_args,
 		"main.py"
 	]
@@ -155,4 +155,5 @@ if __name__ == "__main__":
 		sys.exit(1)
 	except Exception as e:
 		print(f"\nUnexpected error during setup: {e}")
+
 		sys.exit(1)
